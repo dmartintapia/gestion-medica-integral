@@ -43,6 +43,37 @@ docker compose up --build
 - API: `http://localhost:4000`
 - Nginx unificado: `http://localhost:8080`
 
+## Despliegue recomendado
+
+- Frontend en Vercel apuntando al directorio `frontend`
+- Backend en Render apuntando al directorio `backend`
+- Base de datos PostgreSQL en Render
+
+### Frontend en Vercel
+
+1. Importar el repositorio desde GitHub.
+2. Configurar `Root Directory` = `frontend`.
+3. Configurar la variable:
+   - `VITE_API_URL=https://TU-BACKEND.onrender.com/api`
+
+### Backend en Render
+
+1. Crear el backend usando el blueprint incluido en [render.yaml](C:\Users\20285348952\Downloads\Agenda turnos medicos\render.yaml) o configurar manualmente:
+   - `Root Directory` = `backend`
+   - `Build Command` = `npm install && npm run prisma:generate && npm run build`
+   - `Pre-Deploy Command` = `npm run prisma:deploy`
+   - `Start Command` = `npm start`
+2. Completar variables manuales:
+   - `JWT_PRIVATE_KEY`
+   - `JWT_PUBLIC_KEY`
+   - `CORS_ALLOWLIST`
+   - `REDIS_URL` si vas a usar Redis externo/Render Key Value
+
+### Variables de entorno de ejemplo
+
+- Backend: [backend/.env.example](C:\Users\20285348952\Downloads\Agenda turnos medicos\backend\.env.example)
+- Frontend: [frontend/.env.example](C:\Users\20285348952\Downloads\Agenda turnos medicos\frontend\.env.example)
+
 ## Usuarios de prueba
 
 - Admin: `admin@gmi.local` / `Admin123*`
