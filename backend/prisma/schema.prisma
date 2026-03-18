@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  admin
+  medico
+  paciente
+}
+
+enum Modalidad {
+  presencial
+  online
+}
+
+enum EstadoTurno {
+  pendiente
+  confirmado
+  en_curso
+  completado
+  cancelado
+}
+
+model Usuario {
+  id               String      @id @default(cuid())
+  nombre           String
+  email            String      @unique
+  telefono         String?
+  passwordHash     String
+  rol              Rol
+  activo           Boolean     @default(true)
+  dosFaHabilitado  Boolean     @default(false)
+  dosFaSecreto     String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  deletedAt        DateTime?
+
+  medico           Medico?
+  paciente         Paciente?
+  tokens           TokenRefresh[]
+  auditorias       AuditoriaEvento[] @relation("ActorAuditoria")
+}
+
+model Especialidad {
+  id         String   @id @default(cuid())
+  nombre     String   @unique
+  medicos    Medico[]
+}
+
+model Medico {
+  id               String           @id @default(cuid())
+  usuarioId        String           @unique
+  especialidadId   String
+  cmp              String           @unique
+  consultorio      String?
+  slotMinutos      Int              @default(30)
+  bufferMinutos    Int              @default(5)
+  createdAt        DateTime         @default(now())
+
+  usuario          Usuario          @relation(fields: [usuarioId], references: [id])
+  especialidad     Especialidad     @relation(fields: [especialidadId], references: [id])
+  disponibilidades Disponibilidad[]
+  bloqueos         BloqueoAgenda[]
+  turnos           Turno[]
+}
+
+model Paciente {
+  id                    String   @id @default(cuid())
+  usuarioId             String   @unique
+  fechaNacimiento       DateTime?
+  sexo                  String?
+  grupoSanguineo        String?
+  alergiasEnc           String?
+  cronicasEnc           String?
+  medicacionHabitualEnc String?
+  emergenciaEnc         String?
+
+  usuario               Usuario   @relation(fields: [usuarioId], references: [id])
+  turnos                Turno[]
+  consentimientos       Consentimiento[]
+}
+
+model Disponibilidad {
+  id          String   @id @default(cuid())
+  medicoId    String
+  diaSemana   Int
+  horaInicio  String
+  horaFin     String
+
+  medico      Medico   @relation(fields: [medicoId], references: [id])
+}
+
+model BloqueoAgenda {
+  id          String   @id @default(cuid())
+  medicoId    String
+  inicio      DateTime
+  fin         DateTime
+  motivo      String
+
+  medico      Medico   @relation(fields: [medicoId], references: [id])
+}
+
+model Turno {
+  id                String      @id @default(cuid())
+  pacienteId        String
+  medicoId          String
+  inicio            DateTime
+  fin               DateTime
+  modalidad         Modalidad
+  estado            EstadoTurno @default(pendiente)
+  motivo            String
+  motivoCancelacion String?
+  meetingLink       String?
+  timezone          String      @default("America/Argentina/Buenos_Aires")
+  version           Int         @default(1)
+  createdAt         DateTime    @default(now())
+
+  paciente          Paciente    @relation(fields: [pacienteId], references: [id])
+  medico            Medico      @relation(fields: [medicoId], references: [id])
+  consulta          Consulta?
+  documentosPrevios DocumentoPrevio[]
+
+  @@index([medicoId, inicio])
+}
+
+model DocumentoPrevio {
+  id           String   @id @default(cuid())
+  turnoId      String
+  nombreArchivo String
+  rutaStorage  String
+  mimeType     String
+  tamanoBytes  Int
+  checksum     String
+  createdAt    DateTime @default(now())
+
+  turno        Turno    @relation(fields: [turnoId], references: [id], onDelete: Cascade)
+
+  @@index([turnoId])
+}
+
+model Consulta {
+  id                 String    @id @default(cuid())
+  turnoId            String    @unique
+  fecha              DateTime  @default(now())
+  motivo             String
+  diagnosticoEnc     String?
+  cie10              String?
+  notasEnc           String?
+  indicacionesEnc    String?
+  proximoControl     DateTime?
+
+  turno              Turno      @relation(fields: [turnoId], references: [id])
+  recetas            Receta[]
+  adjuntos           Adjunto[]
+}
+
+model Receta {
+  id            String   @id @default(cuid())
+  consultaId    String
+  medicamento   String
+  dosis         String
+  duracion      String
+  instrucciones String?
+
+  consulta      Consulta @relation(fields: [consultaId], references: [id])
+}
+
+model Adjunto {
+  id          String   @id @default(cuid())
+  consultaId  String
+  urlStorage  String
+  tipo        String
+  checksum    String
+  cifrado     Boolean  @default(true)
+
+  consulta    Consulta @relation(fields: [consultaId], references: [id])
+}
+
+model Consentimiento {
+  id          String    @id @default(cuid())
+  pacienteId  String
+  tipo        String
+  otorgado    Boolean
+  fecha       DateTime  @default(now())
+
+  paciente    Paciente  @relation(fields: [pacienteId], references: [id])
+}
+
+model TokenRefresh {
+  id         String   @id @default(cuid())
+  usuarioId  String
+  tokenHash  String
+  expiraEn   DateTime
+  revocado   Boolean  @default(false)
+  creadoEn   DateTime @default(now())
+
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+}
+
+model AuditoriaEvento {
+  id         String   @id @default(cuid())
+  actorId    String?
+  accion     String
+  recurso    String
+  recursoId  String?
+  fecha      DateTime @default(now())
+  ip         String?
+  userAgent  String?
+  requestId  String?
+  resultado  String
+
+  actor      Usuario? @relation("ActorAuditoria", fields: [actorId], references: [id])
+}

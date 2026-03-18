@@ -1,0 +1,33 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Builds / caches
+dist/
+coverage/
+*.tsbuildinfo
+.vercel/
+
+# Runtime data
+backend/uploads/
+backend/tmp/
+
+# Docker / local state
+postgres_data/
